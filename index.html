@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 加上这个 viewport 标签，确保在移动设备上能按真实比例渲染，不会被强制缩放 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>供货商地点布局</title>
+    <!-- 引入 Leaflet 的 CSS 样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        /*  让 body 和 html 占满全屏，并去掉默认的外边距 */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: sans-serif;
+        }
+        
+        /*  地图容器使用 vh (视口高度) 单位，calc 用于减去标题的高度 */
+        #map {
+            width: 100%;
+            height: calc(100vh - 41px); /* 100vh 代表100%的屏幕高度 */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 地图容器 -->
+    <div id="map"></div>
+
+    <!-- 引入 Leaflet 的 JS 脚本 -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        
+        // 1. 在此处添加你的地点数据
+        var myLocations = [
+            { name: "公司", lng: 113.063535, lat: 22.87349986 },
+            { name: "佛山市勤上家具有限公司(航行盛泽)", lng: 113.04322356, lat: 22.86337549 }
+        ];
+        
+        // 2. 初始化地图
+        var map = L.map('map').setView([23.01, 113.12], 13);
+
+        // 3 加载 OpenStreetMap 的地图瓦片（底图）
+        L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+            subdomains: ['1', '2', '3', '4'],
+            attribution: '&copy; 高德地图'
+        }).addTo(map);
+
+        //获取地点数据中的第一个地点，并设为中心点
+        var centerStore = myLocations[0];
+        map.setView([centerStore.lat, centerStore.lng], 13); 
+
+        // 4. 遍历数据，添加标记
+        var bounds = L.latLngBounds(); 
+        myLocations.forEach(function(location, index) {
+            var marker;
+            // 如果是第一个点(index为0)，就使用红色图标，否则用默认蓝色图标
+            if (index === 0) {
+                // Leaflet官方提供的红色标记图标地址
+                var redIcon = new L.Icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                    iconSize: [24, 30],
+                    iconAnchor: [12, 15],
+                    popupAnchor: [1, -19],
+                    shadowSize: [41, 41]
+                });
+                marker = L.marker([location.lat, location.lng], {icon: redIcon}).addTo(map);
+            } else {
+                marker = L.marker([location.lat, location.lng], {
+                    icon: L.icon({
+                        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 20], // 蓝色图标尺寸不同，锚点也需调整
+                        shadowSize: [41, 41]
+                    })
+                }).addTo(map);
+            }
+            
+            // 给中心点的名字加上【中心点】后缀
+            var displayName = location.name;
+
+            // 绑定防重叠的文字标签
+            marker.bindTooltip(displayName, {
+                permanent: true,
+                direction: 'center', // 让标签指向坐标的中心
+                offset: [0, -40],      // 偏移量设为 [0, 0]，即不偏移
+                className: 'no-overlap-label'
+            });
+            
+            // 点击弹窗显示详细信息
+            marker.bindPopup("<b>" + displayName + "</b><br>坐标：" + location.lat + ", " + location.lng);
+            
+            bounds.extend([location.lat, location.lng]);
+        });
+
+
+        // 自动调整视野包含所有点
+        // if (myLocations.length > 0) {
+        //     map.fitBounds(bounds, { padding:  0});
+        // }
+
+        // 5. 【核心适配】监听浏览器窗口大小变化（包括手机横竖屏切换）
+        window.addEventListener('resize', function() {
+            map.invalidateSize(); // 告诉 Leaflet 地图容器尺寸变了，请重新计算渲染
+        });
+    </script>
+</body>
+</html>
+
